@@ -1,0 +1,20 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowGlobantUserAccess",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "arn:aws:iam::${AWS_ACCOUNT_ID}:root"
+            },
+            "Action": [
+                "s3:GetObject",
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::${S3_PROCESSED_BUCKET}",
+                "arn:aws:s3:::${S3_PROCESSED_BUCKET}/*"
+            ]
+        }
+    ]
+}

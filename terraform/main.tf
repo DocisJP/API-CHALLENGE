@@ -1,7 +1,31 @@
-data "aws_s3_bucket" "raw_data" {
-  bucket = var.raw_bucket_name
+# main.tf
+
+#Remote state management
+terraform {
+  backend "s3" {
+    bucket = "globant-data-project-tfstate-12345"
+    key    = "terraform.tfstate"
+    region = "sa-east-1"
+    encrypt = true
+  }
 }
 
-data "aws_s3_bucket" "processed_data" {
-  bucket = var.processed_bucket_name
+
+locals {
+  project_name = "globant-data-project"
+  environment  = "production"  # or "development", etc.
 }
+
+
+resource "aws_kms_key" "data_key" {
+  description             = "KMS key for data encryption"
+  deletion_window_in_days = 10
+  enable_key_rotation     = true
+
+  tags = {
+    Name        = "${local.project_name}-data-key"
+    Environment = local.environment
+  }
+}
+
+# Set global tags or other configurations that apply to all resources

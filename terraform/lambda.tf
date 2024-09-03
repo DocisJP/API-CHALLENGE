@@ -1,38 +1,3 @@
-# IAM Roles for Lambda functions
-resource "aws_iam_role" "file_validation_lambda_role" {
-  name = "file_validation_lambda_role"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "lambda.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role" "data_processing_lambda_role" {
-  name = "data_processing_lambda_role"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "lambda.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-# Attach necessary policies to roles here
-
 # File Validation Lambda
 data "archive_file" "file_validation_lambda" {
   type        = "zip"
@@ -67,7 +32,7 @@ resource "aws_lambda_function" "data_processing" {
 
 # S3 trigger for file validation Lambda
 resource "aws_s3_bucket_notification" "bucket_notification" {
-  bucket = "globant-raw-data"
+  bucket = local.create_bucket["raw"] ? aws_s3_bucket.data_buckets["raw"].id : data.aws_s3_bucket.existing_buckets["raw"].id
 
   lambda_function {
     lambda_function_arn = aws_lambda_function.file_validation.arn
@@ -80,5 +45,5 @@ resource "aws_lambda_permission" "allow_bucket" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.file_validation.function_name
   principal     = "s3.amazonaws.com"
-  source_arn    = "arn:aws:s3:::globant-raw-data"
+  source_arn    = local.create_bucket["raw"] ? aws_s3_bucket.data_buckets["raw"].arn : data.aws_s3_bucket.existing_buckets["raw"].arn
 }

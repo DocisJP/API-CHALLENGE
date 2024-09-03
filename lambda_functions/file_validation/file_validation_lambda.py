@@ -5,6 +5,11 @@ from io import StringIO
 
 s3 = boto3.client('s3')
 
+def validate_csv(rows, expected_columns):
+    if len(rows[0]) != expected_columns:
+        raise ValueError(f"CSV should have {expected_columns} columns")
+    # Add more specific validations as needed
+
 def lambda_handler(event, context):
     bucket = event['Records'][0]['s3']['bucket']['name']
     key = event['Records'][0]['s3']['object']['key']
@@ -14,12 +19,16 @@ def lambda_handler(event, context):
         file_content = response['Body'].read().decode('utf-8')
         csv_file = StringIO(file_content)
         csv_reader = csv.reader(csv_file)
+        rows = list(csv_reader)
         
-        # Perform validation (e.g., check number of columns, data types)
-        # This is a simple example; you should implement more robust validation
-        for row in csv_reader:
-            if len(row) != 5:  # Assuming 5 columns in the CSV
-                raise ValueError("Invalid number of columns")
+        if key.startswith('departments'):
+            validate_csv(rows, 2)
+        elif key.startswith('jobs'):
+            validate_csv(rows, 2)
+        elif key.startswith('hired_employees'):
+            validate_csv(rows, 5)
+        else:
+            raise ValueError(f"Unexpected file: {key}")
         
         # If validation passes, move file to processed bucket
         s3.copy_object(
@@ -27,7 +36,6 @@ def lambda_handler(event, context):
             CopySource={'Bucket': bucket, 'Key': key},
             Key=key
         )
-        s3.delete_object(Bucket=bucket, Key=key)
         
         return {
             'statusCode': 200,
@@ -37,5 +45,5 @@ def lambda_handler(event, context):
         print(e)
         return {
             'statusCode': 500,
-            'body': json.dumps('Error processing the file')
+            'body': json.dumps(f'Error processing the file: {str(e)}')
         }

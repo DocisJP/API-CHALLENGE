@@ -58,3 +58,6 @@ __pycache__/
 
 # Ignore any local logs
 *.log
+
+*/terraform.tfvars/**
+terraform.tfvars

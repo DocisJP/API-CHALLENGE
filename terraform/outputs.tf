@@ -27,3 +27,8 @@ output "data_processing_lambda_role_arn" {
   description = "ARN of the IAM role for data processing Lambda"
   value       = aws_iam_role.data_processing_lambda_role.arn
 }
+
+output "rds_endpoint" {
+  description = "RDS endpoint"
+  value = aws_db_instance.default.endpoint
+}

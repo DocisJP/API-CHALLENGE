@@ -12,6 +12,9 @@ This directory contains the Terraform configuration for the Globant Challenge pr
 - `iam_roles.tf`: Defines IAM roles and policies for Lambda functions.
 - `lambda.tf`: Configures Lambda functions and their triggers.
 - `s3.tf`: Manages S3 bucket resources and data sources.
+- `rds.tf`: Configures the RDS instance and related resources.
+- `step_functions.tf`: Defines the AWS Step Functions state machine for orchestrating the data processing workflow.
+
 
 ## Lambda Function Zip Files
 
@@ -36,27 +39,43 @@ These zip files are created automatically by Terraform using the `archive_file` 
    ```
    terraform apply
    ```
+6. To destroy the infrastructure when not in use:
+```
+   terraform destroy
+   ```
 
 ## Notes
 
 - This configuration uses a combination of resources and data sources to manage new resources and reference existing ones.
 - S3 buckets can be created or referenced based on the `create_bucket` local variable in `s3.tf`.
-- Lambda functions are created and deployed using the zip files generated from the source code.
+- Lambda functions are created and deployed using the source code in the `../lambda_functions` directory.
+- The RDS instance is created in a VPC with appropriate security groups.
+- A Step Functions state machine orchestrates the data processing workflow.
 
 ## Outputs
 
 After applying the configuration, Terraform will output:
 - The names of the raw and processed data S3 buckets
 - ARNs of the Lambda functions and their IAM roles
+- RDS endpoint information
+- Step Functions state machine ARN
 
 ## Lambda Functions
 
 1. File Validation Lambda:
-   - Purpose: Validates files uploaded to the raw data S3 bucket.
-   - Trigger: S3 ObjectCreated events on the raw data bucket.
+- Purpose: Validates files uploaded to the raw data S3 bucket.
+- Trigger: S3 ObjectCreated events on the raw data bucket.
 
 2. Data Processing Lambda:
-   - Purpose: Processes validated data from the raw bucket and stores results in the processed bucket.
-   - Trigger: Invoked as part of the data processing workflow (e.g., by Step Functions, not shown in this config).
+- Purpose: Processes validated data from the raw bucket and stores results in the processed bucket.
+- Trigger: Invoked as part of the Step Functions workflow.
 
-To modify the Lambda function code, update the corresponding Python files in the `lambda_functions` directory. Terraform will automatically repackage and redeploy the functions on the next `terraform apply`.
+## Database Setup
+
+The `rds.tf` file includes a `null_resource` that runs Python scripts to set up the database schema and update the configuration. Ensure that the `config.yaml` file is present in the project root directory for these scripts to work correctly.
+
+## Step Functions
+
+The Step Functions state machine defined in `step_functions.tf` orchestrates the data processing workflow, including file validation and data processing steps.
+
+To modify the infrastructure, update the corresponding Terraform files. To change Lambda function code, update the Python files in the `../lambda_functions` directory. Terraform will automatically redeploy the functions on the next `terraform apply`.

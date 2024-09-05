@@ -61,7 +61,6 @@ __pycache__/
 
 */terraform.tfvars/**
 *.terraform.tfvars
-*.tfvars
 *.tfvars.json
 
 current_state.txt

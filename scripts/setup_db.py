@@ -2,7 +2,7 @@ import psycopg2
 import yaml
 import os
 
-# Load configuration
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
 config_path = os.path.join(project_root, 'config.yaml')
@@ -12,7 +12,7 @@ print(f"Looking for config file at: {config_path}")
 with open(config_path, 'r') as config_file:
     config = yaml.safe_load(config_file)
 
-# Database connection parameters
+
 db_params = {
     'dbname': config['rds']['db_name'],
     'user': config['rds']['username'],
@@ -21,7 +21,6 @@ db_params = {
     'port': config['rds']['port']
 }
 
-# SQL statements to create tables
 create_tables = [
     """
     CREATE TABLE IF NOT EXISTS departments (
@@ -51,17 +50,14 @@ create_tables = [
 def setup_database():
     conn = None
     try:
-        # Connect to the database
         print("Connecting to the database...")
         conn = psycopg2.connect(**db_params)
         cur = conn.cursor()
 
-        # Create tables
         for create_table_sql in create_tables:
             print(f"Executing: {create_table_sql}")
             cur.execute(create_table_sql)
 
-        # Commit the changes
         conn.commit()
         print("Database schema created successfully.")
 

@@ -27,7 +27,7 @@ resource "aws_sfn_state_machine" "data_processing_workflow" {
         }]
       }
       FailState = {
-        Type = "Fail"
+        Type  = "Fail"
         Cause = "Data Processing Failed"
       }
     }

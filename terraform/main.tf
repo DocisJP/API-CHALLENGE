@@ -3,9 +3,9 @@
 #Remote state management
 terraform {
   backend "s3" {
-    bucket = "globant-data-project-tfstate-12345"
-    key    = "terraform.tfstate"
-    region = "sa-east-1"
+    bucket  = "globant-data-project-tfstate-12345"
+    key     = "terraform.tfstate"
+    region  = "sa-east-1"
     encrypt = true
   }
 }
@@ -13,7 +13,7 @@ terraform {
 
 locals {
   project_name = "globant-data-project"
-  environment  = "production"  # or "development", etc.
+  environment  = "production" # or "development", etc.
 }
 
 

@@ -1,36 +1,5 @@
 # rds.tf
 
-resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
-  
-  enable_dns_hostnames = true
-  enable_dns_support   = true
-
-  tags = {
-    Name = "main-vpc"
-  }
-}
-
-resource "aws_subnet" "private_1" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = "10.0.1.0/24"
-  availability_zone = "${var.aws_region}a"
-
-  tags = {
-    Name = "Private Subnet 1"
-  }
-}
-
-resource "aws_subnet" "private_2" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = "10.0.2.0/24"
-  availability_zone = "${var.aws_region}b"
-
-  tags = {
-    Name = "Private Subnet 2"
-  }
-}
-
 resource "aws_db_subnet_group" "default" {
   name       = "main"
   subnet_ids = [aws_subnet.private_1.id, aws_subnet.private_2.id]
@@ -65,7 +34,6 @@ resource "aws_security_group" "rds" {
   }
 }
 
-
 resource "aws_db_instance" "default" {
   identifier           = "globantdb"
   allocated_storage    = 20
@@ -78,7 +46,7 @@ resource "aws_db_instance" "default" {
   password             = var.db_password
   parameter_group_name = "default.postgres16"
   skip_final_snapshot  = true
-  
+
   vpc_security_group_ids = [aws_security_group.rds.id]
   db_subnet_group_name   = aws_db_subnet_group.default.name
 
@@ -92,17 +60,12 @@ resource "null_resource" "db_setup" {
 
   provisioner "local-exec" {
     command = <<EOT
-      echo "Current directory: $(pwd)"
-      echo "Project root directory contents:"
-      ls -la ${path.module}/..
-      echo "Scripts directory contents:"
-      ls -la ${path.module}/../scripts
-      echo "Config file location:"
-      ls -la ${path.module}/../config.yaml
-      python ${path.module}/../scripts/update_config.py ${aws_db_instance.default.endpoint}
-      python ${path.module}/../scripts/setup_db.py
+      pwd
+      ls -la ../scripts
+      python ../scripts/update_config.py ${aws_db_instance.default.endpoint}
+      python ../scripts/setup_db.py
     EOT
-    
+
     environment = {
       DB_ENDPOINT = aws_db_instance.default.endpoint
       DB_NAME     = aws_db_instance.default.db_name

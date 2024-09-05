@@ -30,5 +30,20 @@ output "data_processing_lambda_role_arn" {
 
 output "rds_endpoint" {
   description = "RDS endpoint"
-  value = aws_db_instance.default.endpoint
+  value       = aws_db_instance.default.endpoint
+}
+
+output "alb_hostname" {
+  value       = aws_lb.main.dns_name
+  description = "Hostname of the Application Load Balancer"
+}
+
+output "ecs_cluster_name" {
+  value       = aws_ecs_cluster.main.name
+  description = "Name of the ECS cluster"
+}
+
+output "ecs_service_name" {
+  value       = aws_ecs_service.main.name
+  description = "Name of the ECS service"
 }

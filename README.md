@@ -23,6 +23,8 @@ Our solution combines serverless components for data processing with containeriz
 
 ## Architecture Diagram
 
+![diagram](datachallenge.jpg)
+
 Key Components:
 1. S3 Bucket (Raw Data Storage)
 2. SQS Queue (Event Buffer)

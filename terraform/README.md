@@ -9,9 +9,9 @@ This directory contains the Terraform configuration for the Globant Challenge pr
 - `outputs.tf`: Specifies the outputs that will be displayed after applying the Terraform configuration.
 - `providers.tf`: Configures the AWS provider for Terraform.
 - `terraform.tfvars`: Sets values for the defined variables.
-- `iam_roles.tf`: Defines IAM roles and policies for Lambda functions and ECS tasks.
-- `lambda.tf`: Configures Lambda functions and their triggers.
-- `s3.tf`: Manages S3 bucket resources and data sources.
+- `iam_roles.tf`: Defines IAM roles and policies for ECS tasks, and other services.
+- `s3.tf`: Manages S3 bucket resources, notifications, and data sources.
+- `sqs.tf`: Manages SQS queues and associated policies to allow S3 bucket notifications.
 - `rds.tf`: Configures the RDS instance and related resources.
 - `step_functions.tf`: Defines the AWS Step Functions state machine for orchestrating the data processing workflow.
 - `networking.tf`: Sets up VPC, subnets, and other networking components.
@@ -20,14 +20,17 @@ This directory contains the Terraform configuration for the Globant Challenge pr
 - `api_gateway.tf`: Configures the API Gateway and VPC Link.
 - `ecr.tf`: Sets up the Elastic Container Registry for Docker images.
 
-## Lambda Function Zip Files
+## Changes in S3 and SQS Setup
 
-- `data_processing_lambda.zip`: Contains the code for the data processing Lambda function.
-- `file_validation_lambda.zip`: Contains the code for the file validation Lambda function.
+- **S3 Bucket Creation**: The `s3.tf` configuration now supports conditional bucket creation based on the `create_bucket` local variable. If `create_bucket` is set to `false`, existing buckets are referenced.
+- **S3 Bucket Notifications**: A new S3 bucket notification sends events to an SQS queue (`aws_sqs_queue.etl_queue`) when objects are created in the raw data bucket. The notification depends on the correct configuration of the SQS policy, which allows the S3 bucket to send messages to the queue.
+- **SQS Queue Policy**: The `sqs.tf` file now includes an SQS queue policy (`aws_sqs_queue_policy.sqs_policy`) that grants permission to the S3 bucket to send messages to the SQS queue.
 
-These zip files are created automatically by Terraform using the `archive_file` data source and are used to deploy the Lambda functions.
+## Lambda Functions Removed
 
-## Usage
+- Lambda functions have been removed from the configuration. This affects the steps related to `lambda.tf` and the associated triggers.
+
+## Updated Usage
 
 1. Ensure you have Terraform installed and AWS CLI configured.
 2. Navigate to this directory.
@@ -50,9 +53,9 @@ These zip files are created automatically by Terraform using the `archive_file` 
 
 ## Notes
 
-- This configuration uses a combination of resources and data sources to manage new resources and reference existing ones.
-- S3 buckets can be created or referenced based on the `create_bucket` local variable in `s3.tf`.
-- Lambda functions are created and deployed using the source code in the `../lambda_functions` directory.
+- The configuration uses both newly created resources and existing ones, depending on the `create_bucket` local variable in `s3.tf`.
+- **S3 Bucket Creation**: If `create_bucket["raw"]` or `create_bucket["processed"]` is `false`, Terraform will reference existing S3 buckets instead of creating new ones.
+- **S3 Bucket Notifications**: Notifications are set up on the raw data S3 bucket to trigger events to an SQS queue whenever new objects are created in the bucket.
 - The RDS instance is created in a VPC with appropriate security groups.
 - A Step Functions state machine orchestrates the data processing workflow.
 - ECS tasks run in a Fargate cluster behind a Network Load Balancer.
@@ -62,30 +65,15 @@ These zip files are created automatically by Terraform using the `archive_file` 
 
 After applying the configuration, Terraform will output:
 - The names of the raw and processed data S3 buckets
-- ARNs of the Lambda functions and their IAM roles
+- The SQS queue URL
 - RDS endpoint information
-- Step Functions state machine ARN
 - NLB DNS name
 - ECS cluster and service names
 - API Gateway URL
 
-## Lambda Functions
-
-1. File Validation Lambda:
-   - Purpose: Validates files uploaded to the raw data S3 bucket.
-   - Trigger: S3 ObjectCreated events on the raw data bucket.
-
-2. Data Processing Lambda:
-   - Purpose: Processes validated data from the raw bucket and stores results in the processed bucket.
-   - Trigger: Invoked as part of the Step Functions workflow.
-
-## Database Setup
-
-The `rds.tf` file includes a `null_resource` that runs Python scripts to set up the database schema and update the configuration. Ensure that the `config.yaml` file is present in the project root directory for these scripts to work correctly.
-
 ## Step Functions
 
-The Step Functions state machine defined in `step_functions.tf` orchestrates the data processing workflow, including file validation and data processing steps.
+The Step Functions state machine defined in `step_functions.tf` orchestrates the data processing workflow, including various tasks.
 
 ## ECS and Docker
 
@@ -97,6 +85,5 @@ The API Gateway is set up with a VPC Link to the Network Load Balancer, allowing
 
 ## Modifying the Infrastructure
 
-To modify the infrastructure, update the corresponding Terraform files. To change Lambda function code, update the Python files in the `../lambda_functions` directory. Terraform will automatically redeploy the functions on the next `terraform apply`.
+To modify the infrastructure, update the corresponding Terraform files. For changes to the containerized application, update the Docker image, push it to ECR, and update the ECS task definition in `ecs.tf` with the new image URL.
 
-For changes to the containerized application, update the Docker image, push it to ECR, and update the ECS task definition in `ecs.tf` with the new image URL.

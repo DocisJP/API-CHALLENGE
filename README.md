@@ -2,6 +2,15 @@
 
 This project implements a scalable, hybrid architecture for processing and analyzing employee hiring data.
 
+## Content
+[API](https://github.com/DocisJP/API-CHALLENGE/blob/main/app/README.md)
+
+[AWS_JSONS](https://github.com/DocisJP/API-CHALLENGE/blob/main/aws_jsons/README.md)
+
+[Sripts]([ruta/del/archivo.md](https://github.com/DocisJP/API-CHALLENGE/blob/main/scripts/README.md))
+
+[Terraform]([ruta/del/archivo.md](https://github.com/DocisJP/API-CHALLENGE/blob/main/terraform/README.md))
+
 ## Architecture Overview
 
 Our solution combines serverless components for data processing with containerized components for the API. Here's an overview of the architecture:
@@ -81,3 +90,5 @@ RDS_USERNAME: Username for RDS access
 RDS_PASSWORD: Password for RDS access
 
 Ensure these variables are properly set in your Terraform configuration and ECS task definition.
+
+

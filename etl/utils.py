@@ -10,12 +10,14 @@ from etl.config import NULL_DATE_PLACEHOLDER
 
 def create_db_engine(db_params):
     try:
-        engine = create_engine(f"postgresql://{db_params['user']}:{db_params['password']}@{db_params['host']}:{db_params['port']}/{db_params['dbname']}")
+        if 'url' in db_params:
+            engine = create_engine(db_params['url'])
+        else:
+            engine = create_engine(f"postgresql://{db_params['user']}:{db_params['password']}@{db_params['host']}:{db_params['port']}/{db_params['dbname']}")
         return engine
     except Exception as e:
         logger.error(f"Error creating database engine: {str(e)}")
         raise
-
 def read_csv(file_path):
     try:
         df = pd.read_csv(file_path)

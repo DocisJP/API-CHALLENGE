@@ -10,12 +10,16 @@ from typing import List
 from .database import get_db
 from . import models
 from etl.process import etl_process
+import logging
 
 app = FastAPI(
     title="Globant Data Project API",
     description="API for managing employee data and generating hiring reports",
     version="1.0.0",
 )
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 @app.get("/", include_in_schema=False)
 async def root():
@@ -55,34 +59,38 @@ async def employees_hired_by_quarter(db: Session = Depends(get_db)):
     - **Q3**: Number of employees hired in Q3
     - **Q4**: Number of employees hired in Q4
     """
-    query = """
-    SELECT 
-        d.department,
-        j.job,
-        COUNT(CASE WHEN EXTRACT(QUARTER FROM he.datetime) = 1 THEN 1 END) as "Q1",
-        COUNT(CASE WHEN EXTRACT(QUARTER FROM he.datetime) = 2 THEN 1 END) as "Q2",
-        COUNT(CASE WHEN EXTRACT(QUARTER FROM he.datetime) = 3 THEN 1 END) as "Q3",
-        COUNT(CASE WHEN EXTRACT(QUARTER FROM he.datetime) = 4 THEN 1 END) as "Q4"
-    FROM 
-        hired_employees he
-    JOIN 
-        departments d ON he.department_id = d.id
-    JOIN 
-        jobs j ON he.job_id = j.id
-    WHERE 
-        EXTRACT(YEAR FROM he.datetime) = 2021
-    GROUP BY 
-        d.department, j.job
-    ORDER BY 
-        d.department, j.job
-
-    """
-    
     try:
-        result = db.execute(text(query)).mappings()
+        query = """
+        SELECT 
+            d.department,
+            j.job,
+            COUNT(CASE WHEN EXTRACT(QUARTER FROM he.datetime) = 1 THEN 1 END) as "Q1",
+            COUNT(CASE WHEN EXTRACT(QUARTER FROM he.datetime) = 2 THEN 1 END) as "Q2",
+            COUNT(CASE WHEN EXTRACT(QUARTER FROM he.datetime) = 3 THEN 1 END) as "Q3",
+            COUNT(CASE WHEN EXTRACT(QUARTER FROM he.datetime) = 4 THEN 1 END) as "Q4"
+        FROM 
+            hired_employees he
+        JOIN 
+            departments d ON he.department_id = d.id
+        JOIN 
+            jobs j ON he.job_id = j.id
+        WHERE 
+            EXTRACT(YEAR FROM he.datetime) = 2021
+        GROUP BY 
+            d.department, j.job
+        ORDER BY 
+            d.department, j.job
+
+        """
+        
+        result = db.execute(text(query)).mappings().all()
         return [models.EmployeeHiredByQuarter(**row) for row in result]
     except SQLAlchemyError as e:
+        logger.error(f"Database error in employees_hired_by_quarter: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error in employees_hired_by_quarter: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 @app.get("/departments_hired_above_mean/", response_model=List[models.DepartmentHiredAboveMean], summary="Departments hired above mean")
 async def departments_hired_above_mean(db: Session = Depends(get_db)):
@@ -96,42 +104,46 @@ async def departments_hired_above_mean(db: Session = Depends(get_db)):
     
     The list is ordered by the number of employees hired in descending order.
     """
-    query = """
-    WITH department_hires AS (
-        SELECT 
-            d.id,
-            d.department,
-            COUNT(*) as hired
-        FROM 
-            hired_employees he
-        JOIN 
-            departments d ON he.department_id = d.id
-        WHERE 
-            EXTRACT(YEAR FROM he.datetime) = 2021
-        GROUP BY 
-            d.id, d.department
-    ),
-    mean_hires AS (
-        SELECT AVG(hired) as mean_hired
-        FROM department_hires
-    )
-    SELECT 
-        dh.id,
-        dh.department,
-        dh.hired
-    FROM 
-        department_hires dh, mean_hires
-    WHERE 
-        dh.hired > mean_hires.mean_hired
-    ORDER BY 
-        dh.hired DESC
-    """
-    
     try:
-        result = db.execute(text(query)).mappings()
+        query = """
+        WITH department_hires AS (
+            SELECT 
+                d.id,
+                d.department,
+                COUNT(*) as hired
+            FROM 
+                hired_employees he
+            JOIN 
+                departments d ON he.department_id = d.id
+            WHERE 
+                EXTRACT(YEAR FROM he.datetime) = 2021
+            GROUP BY 
+                d.id, d.department
+        ),
+        mean_hires AS (
+            SELECT AVG(hired) as mean_hired
+            FROM department_hires
+        )
+        SELECT 
+            dh.id,
+            dh.department,
+            dh.hired
+        FROM 
+            department_hires dh, mean_hires
+        WHERE 
+            dh.hired > mean_hires.mean_hired
+        ORDER BY 
+            dh.hired DESC
+        """
+    
+        result = db.execute(text(query)).mappings().all()
         return [models.DepartmentHiredAboveMean(**row) for row in result]
     except SQLAlchemyError as e:
+        logger.error(f"Database error in departments_hired_above_mean: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error in departments_hired_above_mean: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 def custom_openapi():
     """

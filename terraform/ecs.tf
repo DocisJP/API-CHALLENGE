@@ -34,14 +34,44 @@ resource "aws_ecs_task_definition" "app" {
           hostPort      = 80
         }
       ]
+      environment = [
+        {
+          name  = "AWS_EXECUTION_ENV"
+          value = "ECS"
+        },
+        {
+          name  = "SQS_QUEUE_URL"
+          value = aws_sqs_queue.etl_queue.url
+        },
+        {
+          name  = "S3_RAW_BUCKET"
+          value = local.create_bucket["raw"] ? aws_s3_bucket.raw_data_bucket[0].id : data.aws_s3_bucket.existing_buckets["raw"].id
+        },
+        {
+          name  = "S3_PROCESSED_BUCKET"
+          value = local.create_bucket["processed"] ? aws_s3_bucket.processed_data_bucket[0].id : data.aws_s3_bucket.existing_buckets["processed"].id
+        },
+        {
+          name  = "RDS_ENDPOINT"
+          value = aws_db_instance.default.endpoint
+        },
+        {
+          name  = "RDS_DB_NAME"
+          value = aws_db_instance.default.db_name
+        },
+        {
+          name  = "RDS_USERNAME"
+          value = aws_db_instance.default.username
+        },
+        {
+          name  = "RDS_PASSWORD"
+          value = aws_db_instance.default.password
+        }
+      ]
     }
   ])
-
-  tags = {
-    Name        = "globant-data-project-task"
-    Environment = local.environment
-  }
 }
+
 
 resource "aws_ecs_service" "main" {
   name            = "globant-data-project-service"

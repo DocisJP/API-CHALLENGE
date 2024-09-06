@@ -6,6 +6,7 @@ from etl.utils import (
 )
 from etl.load import load_process
 from etl.logger import logger
+from config import detect_environment
 from etl.config import NULL_DATE_PLACEHOLDER
 
 def process_table(engine, table_name, fk_columns=None):
@@ -37,9 +38,9 @@ def process_table(engine, table_name, fk_columns=None):
     insert_dataframe(df, table_name, engine)
     logger.info(f"{'='*20} Completed processing {table_name} table {'='*20}\n")
 
-def etl_process():
+def local_etl_process():
     try:
-        logger.info("Starting ETL process")
+        logger.info("Starting local ETL process")
         
         logger.info("Initializing database")
         load_process()
@@ -48,13 +49,28 @@ def etl_process():
         engine = create_db_engine(DB_PARAMS)
         logger.info("Database engine created successfully")
 
-        # Process each table in the correct order
         process_table(engine, 'departments')
         process_table(engine, 'jobs')
         process_table(engine, 'hired_employees', 
                       fk_columns={'department_id': 'departments', 'job_id': 'jobs'})
 
-        logger.info("ETL process completed successfully")
+        logger.info("Local ETL process completed successfully")
 
     except Exception as e:
-        logger.error(f"ETL process failed: {str(e)}", exc_info=True)
+        logger.error(f"Local ETL process failed: {str(e)}", exc_info=True)
+
+def aws_etl_process():
+    from etl.aws_etl_process import aws_etl_process
+    aws_etl_process()
+
+def etl_process():
+    environment = detect_environment()
+    logger.info(f"Detected environment: {environment}")
+
+    if environment == 'aws':
+        aws_etl_process()
+    else:
+        local_etl_process()
+
+if __name__ == "__main__":
+    etl_process()

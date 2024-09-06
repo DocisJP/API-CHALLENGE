@@ -24,6 +24,11 @@ def load_config():
     if environment == 'aws':
         config['db'] = config['rds']
         config['paths']['data_dir'] = '/tmp/data'
+        config['aws'] = {
+            'sqs_queue_url': os.environ.get('SQS_QUEUE_URL'),
+            's3_raw_bucket': os.environ.get('S3_RAW_BUCKET'),
+            's3_processed_bucket': os.environ.get('S3_PROCESSED_BUCKET')
+        }
     elif environment == 'docker':
         config['db'] = {
             'host': 'db', 
@@ -53,3 +58,8 @@ DATA_DIR = Path(CONFIG['paths']['data_dir'])
 print(f"Using database host: {DB_PARAMS['host']}")
 print(f"Using database port: {DB_PARAMS['port']}")
 print(f"Using data directory: {DATA_DIR}")
+
+if detect_environment() == 'aws':
+    print(f"Using SQS Queue URL: {CONFIG['aws']['sqs_queue_url']}")
+    print(f"Using S3 Raw Bucket: {CONFIG['aws']['s3_raw_bucket']}")
+    print(f"Using S3 Processed Bucket: {CONFIG['aws']['s3_processed_bucket']}")

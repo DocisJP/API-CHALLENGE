@@ -27,5 +27,3 @@ resource "aws_kms_key" "data_key" {
     Environment = local.environment
   }
 }
-
-# Set global tags or other configurations that apply to all resources

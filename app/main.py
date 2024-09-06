@@ -1,13 +1,15 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, BackgroundTasks
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import text
 import pandas as pd
 import io
 from typing import List
 from .database import get_db
 from . import models
+from etl.process import etl_process
 
 app = FastAPI(
     title="Globant Data Project API",
@@ -18,29 +20,6 @@ app = FastAPI(
 @app.get("/", include_in_schema=False)
 async def root():
     return RedirectResponse(url='/docs')
-
-@app.post("/upload_csv/", summary="Upload CSV file")
-async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)):
-    """
-    Upload a CSV file to insert data into the database.
-
-    - **file**: A CSV file to be uploaded
-    
-    Returns a message confirming successful upload.
-    """
-    if not file.filename.endswith('.csv'):
-        raise HTTPException(status_code=400, detail="Only CSV files are allowed")
-    
-    contents = await file.read()
-    df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
-    
-    table_name = file.filename.split('.')[0]
-    
-    try:
-        df.to_sql(table_name, db.bind, if_exists='append', index=False)
-        return {"message": f"Data uploaded successfully to table {table_name}"}
-    except SQLAlchemyError as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @app.post("/batch_insert/", summary="Batch insert data")
 async def batch_insert(request: models.BatchInsertRequest, db: Session = Depends(get_db)):
@@ -80,10 +59,10 @@ async def employees_hired_by_quarter(db: Session = Depends(get_db)):
     SELECT 
         d.department,
         j.job,
-        COUNT(CASE WHEN EXTRACT(QUARTER FROM he.datetime) = 1 THEN 1 END) as Q1,
-        COUNT(CASE WHEN EXTRACT(QUARTER FROM he.datetime) = 2 THEN 1 END) as Q2,
-        COUNT(CASE WHEN EXTRACT(QUARTER FROM he.datetime) = 3 THEN 1 END) as Q3,
-        COUNT(CASE WHEN EXTRACT(QUARTER FROM he.datetime) = 4 THEN 1 END) as Q4
+        COUNT(CASE WHEN EXTRACT(QUARTER FROM he.datetime) = 1 THEN 1 END) as "Q1",
+        COUNT(CASE WHEN EXTRACT(QUARTER FROM he.datetime) = 2 THEN 1 END) as "Q2",
+        COUNT(CASE WHEN EXTRACT(QUARTER FROM he.datetime) = 3 THEN 1 END) as "Q3",
+        COUNT(CASE WHEN EXTRACT(QUARTER FROM he.datetime) = 4 THEN 1 END) as "Q4"
     FROM 
         hired_employees he
     JOIN 
@@ -96,10 +75,11 @@ async def employees_hired_by_quarter(db: Session = Depends(get_db)):
         d.department, j.job
     ORDER BY 
         d.department, j.job
+
     """
     
     try:
-        result = db.execute(query)
+        result = db.execute(text(query)).mappings()
         return [models.EmployeeHiredByQuarter(**row) for row in result]
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
@@ -148,7 +128,7 @@ async def departments_hired_above_mean(db: Session = Depends(get_db)):
     """
     
     try:
-        result = db.execute(query)
+        result = db.execute(text(query)).mappings()
         return [models.DepartmentHiredAboveMean(**row) for row in result]
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
@@ -172,6 +152,16 @@ def custom_openapi():
     return app.openapi_schema
 
 app.openapi = custom_openapi
+
+@app.post("/run_etl/", summary="Run ETL process")
+async def run_etl(background_tasks: BackgroundTasks):
+    """
+    Trigger the ETL process to run in the background.
+
+    Returns a message confirming that the ETL process has been started.
+    """
+    background_tasks.add_task(etl_process)
+    return {"message": "ETL process started in the background"}
 
 if __name__ == "__main__":
     import uvicorn

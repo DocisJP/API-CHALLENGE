@@ -64,3 +64,6 @@ __pycache__/
 *.tfvars.json
 
 current_state.txt
+
+docker.env
+.env

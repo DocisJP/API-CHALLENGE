@@ -23,16 +23,31 @@ def load_config():
 config = load_config()
 
 # Determine environment
-IS_LOCAL = os.environ.get('IS_LOCAL', 'false').lower() == 'true'
-logger.info(f"Running in {'local' if IS_LOCAL else 'production'} environment")
+IS_DOCKER = os.environ.get('DOCKER_CONTAINER', 'false').lower() == 'true'
+IS_AWS = 'AWS_EXECUTION_ENV' in os.environ
+IS_LOCAL = not (IS_DOCKER or IS_AWS)
+
+logger.info(f"Running in {'Docker' if IS_DOCKER else 'AWS' if IS_AWS else 'local'} environment")
 
 # Construct database URL
 def get_database_url():
-    db_config = config['local_db'] if IS_LOCAL else config['rds']
+    if IS_DOCKER:
+        db_config = {
+            'host': 'db',
+            'port': 5432,
+            'db_name': config['local_db']['db_name'],
+            'username': config['local_db']['username'],
+            'password': config['local_db']['password']
+        }
+    elif IS_AWS:
+        db_config = config['rds']
+    else:
+        db_config = config['local_db']
+    
     return f"postgresql://{db_config['username']}:{db_config['password']}@{db_config['host']}:{db_config['port']}/{db_config['db_name']}"
 
 DB_URL = get_database_url()
-logger.info(f"Database URL constructed: {DB_URL.replace(config['local_db' if IS_LOCAL else 'rds']['password'], '****')}")
+logger.info(f"Database URL constructed: {DB_URL.replace(config['local_db']['password'], '****')}")
 
 # Create SQLAlchemy engine
 try:
@@ -47,12 +62,6 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 def get_db():
-    """
-    Generator function to create and manage database sessions.
-    
-    Yields:
-        Session: A SQLAlchemy database session.
-    """
     db = SessionLocal()
     try:
         yield db

@@ -4,8 +4,11 @@ This project implements a scalable, hybrid architecture for processing and analy
 
 ## Content
 [API](https://github.com/DocisJP/API-CHALLENGE/blob/main/app/README.md)
+
 [AWS_JSONS](https://github.com/DocisJP/API-CHALLENGE/blob/main/aws_jsons/README.md)
+
 [Sripts]([ruta/del/archivo.md](https://github.com/DocisJP/API-CHALLENGE/blob/main/scripts/README.md))
+
 [Terraform]([ruta/del/archivo.md](https://github.com/DocisJP/API-CHALLENGE/blob/main/terraform/README.md))
 
 ## Architecture Overview

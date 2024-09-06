@@ -12,15 +12,25 @@ Our solution combines serverless components for data processing with containeriz
 4. **API**: A containerized FastAPI application, running on AWS ECS, serves the processed data and provides analytical endpoints.
 5. **CI/CD**: AWS CodePipeline automates the build and deployment process.
 
-## Key Components
+## Architecture Diagram
 
-1. **S3 Buckets**: Store raw data.
-2. **SQS Queue**: Buffers events from S3 for processing.
-3. **ECS**: Runs the containerized FastAPI application and data processing tasks.
-4. **RDS**: Stores structured data for efficient querying.
-5. **API Gateway**: Provides HTTP endpoints for the API.
-6. **ECR**: Stores Docker images for the API application.
-7. **CodePipeline**: Automates the CI/CD process.
+Key Components:
+1. S3 Bucket (Raw Data Storage)
+2. SQS Queue (Event Buffer)
+3. ECS Cluster
+   - ETL Task: Data processing
+   - FastAPI Containers: API serving
+4. Amazon RDS (PostgreSQL)
+5. API Gateway & Application Load Balancer
+6. CI/CD Pipeline (CodePipeline, CodeBuild, ECR)
+
+Data Flow:
+1. CSV files → S3 Bucket → SQS Queue
+2. ECS ETL Task ← SQS Queue
+3. ECS ETL Task → RDS
+4. User Requests → API Gateway → Load Balancer → FastAPI Containers
+5. FastAPI Containers ↔ RDS
+6. GitHub → CodePipeline → CodeBuild → ECR → ECS
 
 ## API Endpoints
 
